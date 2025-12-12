@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch local AUR repo dir and trigger DB rebuild (user)
+
+[Path]
+PathExistsGlob=/var/lib/repo/aur/*.pkg.*
+PathChanged=/var/lib/repo/aur
+Unit=fix-aurdb.service
+
+[Install]
+WantedBy=default.target

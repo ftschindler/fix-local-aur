@@ -1,0 +1,8 @@
+[Unit]
+Description=Rebuild local AUR repo database if missing
+Wants=fix-aurdb.path
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/fix-local-aur-db
+Nice=10

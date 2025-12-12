@@ -1,0 +1,10 @@
+[Unit]
+Description=Rebuild local AUR repo database if missing (user)
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/fix-local-aur-db
+Nice=10
+
+[Install]
+WantedBy=default.target
