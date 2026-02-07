@@ -13,6 +13,7 @@ fi
 cd "$REPO_DIR"
 
 shopt -s nullglob
+GLOBIGNORE="*.sig"
 pkgs=(*.pkg.*)
 
 # If there are no packages, there's nothing meaningful to index.
