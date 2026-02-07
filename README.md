@@ -13,8 +13,15 @@ This setup ensures a local `file://` pacman repo (e.g., `/var/lib/repo/aur`) alw
 ## Prerequisites
 
 - `repo-add` (part of `pacman-contrib`/`pacman`): used to build the repo DB.
-- The repo directory exists: `/var/lib/repo/aur`.
-- The user or system service must have read/write permissions in the repo dir.
+- The aur repo directory exists: `/var/lib/repo/aur`.
+- The user or system service must have read/write permissions in the aur repo dir.
+- This repo checked out:
+
+  ```bash
+  cd /tmp
+  git clone https://github.com/ftschindler/fix-local-aur.git
+  cd fix-local-aur
+  ```
 
 ## User-mode installation (recommended when the user writes the repo)
 
@@ -23,14 +30,14 @@ Use this if the repo directory is writable by your user (common with `paru`).
 1) Install the fixer script into your PATH:
 
 ```bash
-install -m 0755 /home/felix/Projects/self/fix_local_aur.bash ~/.local/bin/fix-local-aur-db
+install -m 0755 fix_local_aur.bash ~/.local/bin/fix-local-aur-db
 ```
 
 1) Install the user systemd units:
 
 ```bash
-install -Dm 0644 /home/felix/Projects/self/systemd-user/fix-aurdb.service ~/.config/systemd/user/fix-aurdb.service
-install -Dm 0644 /home/felix/Projects/self/systemd-user/fix-aurdb.path ~/.config/systemd/user/fix-aurdb.path
+install -Dm 0644 systemd-user/fix-aurdb.service ~/.config/systemd/user/fix-aurdb.service
+install -Dm 0644 systemd-user/fix-aurdb.path ~/.config/systemd/user/fix-aurdb.path
 systemctl --user daemon-reload
 systemctl --user enable --now fix-aurdb.path
 ```
@@ -69,14 +76,14 @@ Use this if the repo directory is managed by root/system services. Ensure the se
 1) Install the fixer script:
 
 ```bash
-sudo install -m 0755 /home/felix/Projects/self/fix_local_aur.bash /usr/local/sbin/fix-local-aur-db
+sudo install -m 0755 fix_local_aur.bash /usr/local/sbin/fix-local-aur-db
 ```
 
 1) Install the system units:
 
 ```bash
-sudo install -m 0644 /home/felix/Projects/self/systemd/fix-aurdb.service /etc/systemd/system/fix-aurdb.service
-sudo install -m 0644 /home/felix/Projects/self/systemd/fix-aurdb.path /etc/systemd/system/fix-aurdb.path
+sudo install -m 0644 systemd/fix-aurdb.service /etc/systemd/system/fix-aurdb.service
+sudo install -m 0644 systemd/fix-aurdb.path /etc/systemd/system/fix-aurdb.path
 sudo systemctl daemon-reload
 sudo systemctl enable --now fix-aurdb.path
 ```
