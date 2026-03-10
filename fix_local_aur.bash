@@ -12,9 +12,20 @@ fi
 
 cd "$REPO_DIR"
 
+# Use a lock to avoid concurrent repo-add runs (systemd path/timer + manual)
+LOCKFILE="$REPO_DIR/.fix-local-aur.lock"
+exec 9>"$LOCKFILE"
+if ! flock -n 9 2>/dev/null; then
+    echo "Another fix-local-aur run is already in progress; exiting" >&2
+    exit 0
+fi
+
 shopt -s nullglob
-GLOBIGNORE="*.sig"
-pkgs=(*.pkg.*)
+pkgs=()
+for f in *.pkg.*; do
+    [[ "$f" == *.sig ]] && continue
+    pkgs+=("$f")
+done
 
 # If there are no packages, there's nothing meaningful to index.
 # Pacman will still fail to refresh a file:// repo with no DB,
