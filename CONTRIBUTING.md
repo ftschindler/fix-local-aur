@@ -1,5 +1,15 @@
 # Contributing
 
+## Installation
+
+To install the project for development/testing:
+
+```bash
+make install
+```
+
+This installs the script and systemd units to your user config.
+
 ## Testing
 
 This project includes multiple reproducible systemd-based tests that exercise

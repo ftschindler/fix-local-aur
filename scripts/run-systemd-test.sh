@@ -53,8 +53,8 @@ echo "Backed up sample package to $SAMPLE_BACKUP"
 
 # Copy and rename units into user systemd config
 mkdir -p ~/.config/systemd/user
-service_src="$REPO_ROOT/systemd-user/fix-aurdb.service"
-path_src="$REPO_ROOT/systemd-user/fix-aurdb.path"
+service_src="$REPO_ROOT/fix-aurdb.service"
+path_src="$REPO_ROOT/fix-aurdb.path"
 service_dst="$HOME/.config/systemd/user/${UNIT_PREFIX}fix-aurdb.service"
 path_dst="$HOME/.config/systemd/user/${UNIT_PREFIX}fix-aurdb.path"
 

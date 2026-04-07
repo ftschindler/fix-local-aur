@@ -5,20 +5,16 @@ This setup ensures a local `file://` pacman repo (e.g., `/var/lib/repo/aur`) alw
 ## Files
 
 - `fix_local_aur.bash`: Idempotent script to create `aur.db` when missing.
-- `systemd-user/fix-aurdb.service`: User-mode oneshot service.
-- `systemd-user/fix-aurdb.path`: User-mode path watcher for the repo dir.
-- `systemd-user/fix-aurdb.timer`: User-mode timer (boot + hourly checks).
-- `systemd-user/fix-aurdb-failure-notify.service`: Desktop notification on failure (user).
-- `systemd/fix-aurdb.service`: System-mode oneshot service.
-- `systemd/fix-aurdb.path`: System-mode path watcher.
-- `systemd/fix-aurdb.timer`: System-mode timer (boot + hourly checks).
-- `systemd/fix-aurdb-failure-notify.service`: Desktop notification on failure (system).
+- `fix-aurdb.service`: Systemd user service (oneshot).
+- `fix-aurdb.path`: Systemd path watcher for the repo directory.
+- `fix-aurdb.timer`: Systemd timer (runs on boot + hourly).
+- `fix-aurdb-failure-notify.service`: Desktop notification on failure.
 
 ## Prerequisites
 
 - `repo-add` (part of `pacman-contrib`/`pacman`): used to build the repo DB.
-- The aur repo directory exists: `/var/lib/repo/aur`.
-- The user or system service must have read/write permissions in the aur repo dir.
+- The AUR repo directory exists: `/var/lib/repo/aur`.
+- Your user must have read/write permissions in the AUR repo directory (standard with `paru`).
 - This repo checked out:
 
   ```bash
@@ -27,76 +23,95 @@ This setup ensures a local `file://` pacman repo (e.g., `/var/lib/repo/aur`) alw
   cd fix-local-aur
   ```
 
-## User-mode installation (recommended when the user writes the repo)
+## Installation
 
-Use this if the repo directory is writable by your user (common with `paru`).
+### Quick install
 
-1) Install the fixer script into your PATH:
-
-```bash
-install -m 0755 fix_local_aur.bash ~/.local/bin/fix-local-aur-db
-```
-
-1) Install the user systemd units (path watcher + timer + notification):
+From the repo root, run:
 
 ```bash
-install -Dm 0644 systemd-user/fix-aurdb.service ~/.config/systemd/user/fix-aurdb.service
-install -Dm 0644 systemd-user/fix-aurdb.path ~/.config/systemd/user/fix-aurdb.path
-install -Dm 0644 systemd-user/fix-aurdb.timer ~/.config/systemd/user/fix-aurdb.timer
-install -Dm 0644 systemd-user/fix-aurdb-failure-notify.service ~/.config/systemd/user/fix-aurdb-failure-notify.service
-systemctl --user daemon-reload
-systemctl --user enable --now fix-aurdb.path
-systemctl --user enable --now fix-aurdb.timer
+make install
 ```
 
-The path unit watches for directory changes (new packages added) while the timer ensures the DB exists on boot and provides hourly checks as a safety net. If the service fails, you'll receive a desktop notification.
+This will install the script, systemd units, and enable the path and timer units.
 
-1) Optional: run once immediately
+### Manual installation
 
-```bash
-systemctl --user start fix-aurdb.service
-```
+1. Install the fixer script into your PATH:
 
-1) Optional: persist user services across reboots without login
+   ```bash
+   install -m 0755 fix_local_aur.bash ~/.local/bin/fix-local-aur-db
+   ```
 
-```bash
-sudo loginctl enable-linger "$USER"
-```
+1. Install the systemd user units (path watcher + timer + notification):
 
-## System-mode installation (when the system manages the repo)
+   ```bash
+   install -Dm 0644 fix-aurdb.service ~/.config/systemd/user/fix-aurdb.service
+   install -Dm 0644 fix-aurdb.path ~/.config/systemd/user/fix-aurdb.path
+   install -Dm 0644 fix-aurdb.timer ~/.config/systemd/user/fix-aurdb.timer
+   install -Dm 0644 fix-aurdb-failure-notify.service ~/.config/systemd/user/fix-aurdb-failure-notify.service
+   systemctl --user daemon-reload
+   systemctl --user enable --now fix-aurdb.path
+   systemctl --user enable --now fix-aurdb.timer
+   ```
 
-Use this if the repo directory is managed by root/system services. Ensure the service user can write to `/var/lib/repo/aur`.
+   The path unit watches for directory changes (new packages added) while the timer ensures the DB exists on boot and provides hourly checks as a safety net. If the service fails, you'll receive a desktop notification.
 
-1) Install the fixer script:
+### Post-installation (optional)
 
-```bash
-sudo install -m 0755 fix_local_aur.bash /usr/local/sbin/fix-local-aur-db
-```
+1. Run once immediately:
 
-1) Install the system units (path watcher + timer + notification):
+   ```bash
+   systemctl --user start fix-aurdb.service
+   ```
 
-```bash
-sudo install -m 0644 systemd/fix-aurdb.service /etc/systemd/system/fix-aurdb.service
-sudo install -m 0644 systemd/fix-aurdb.path /etc/systemd/system/fix-aurdb.path
-sudo install -m 0644 systemd/fix-aurdb.timer /etc/systemd/system/fix-aurdb.timer
-sudo install -m 0644 systemd/fix-aurdb-failure-notify.service /etc/systemd/system/fix-aurdb-failure-notify.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now fix-aurdb.path
-sudo systemctl enable --now fix-aurdb.timer
-```
+2. Persist user services across reboots without login:
 
-The path unit watches for directory changes (new packages added) while the timer ensures the DB exists on boot and provides hourly checks as a safety net. If the service fails, you'll receive a desktop notification.
+   ```bash
+   sudo loginctl enable-linger "$USER"
+   ```
 
-1) Optional: run once immediately
+## Verification
 
-```bash
-sudo systemctl start fix-aurdb.service
-```
+After installation, verify everything is working:
 
-## Behavior
+1. Check that units are active and enabled:
+
+   ```bash
+   systemctl --user status fix-aurdb.path fix-aurdb.timer
+   ```
+
+   Both should show `Active: active (waiting)` and `Loaded: ... enabled`.
+
+2. Check the timer schedule:
+
+   ```bash
+   systemctl --user list-timers | grep aurdb
+   ```
+
+   Should show the next scheduled run time.
+
+3. Test the script manually:
+
+   ```bash
+   systemctl --user start fix-aurdb.service
+   systemctl --user status fix-aurdb.service
+   ```
+
+   Should show `Active: inactive (dead)` with a recent successful completion.
+
+4. Verify the script is in your PATH:
+
+   ```bash
+   which fix-local-aur-db
+   ```
+
+   Should output `~/.local/bin/fix-local-aur-db`.
+
+## Behaviour
 
 - **Path unit**: Triggers when the repo directory is modified (new packages added/removed).
-- **Timer unit**: Runs 30s-1min after boot and hourly thereafter as a safety net.
+- **Timer unit**: Runs 30s after login/boot and hourly thereafter as a safety net.
 - The script exits immediately if:
   - No packages are present (cannot create a DB without content).
   - `aur.db` and `aur.db.tar.gz` already exist.
@@ -107,13 +122,11 @@ sudo systemctl start fix-aurdb.service
 - Missing DB but no packages:
   - Create or copy at least one `*.pkg.*` into `/var/lib/repo/aur` or temporarily comment out the local repo in `pacman.conf` until packages exist.
 - Permissions:
-  - Ensure your user (user-mode) or root (system-mode) can write to `/var/lib/repo/aur`.
+  - Ensure your user can write to `/var/lib/repo/aur`.
 - Verify units:
 
 ```bash
 systemctl --user status fix-aurdb.path fix-aurdb.timer fix-aurdb.service
-# or system-mode
-sudo systemctl status fix-aurdb.path fix-aurdb.timer fix-aurdb.service
 ```
 
 ## Why not pacman hooks?
