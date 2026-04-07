@@ -2,13 +2,20 @@
 Description=Watch local AUR repo dir and trigger DB rebuild (user)
 
 [Path]
-PathExistsGlob=/var/lib/repo/aur/*.pkg.*
-# Do not watch for arbitrary directory changes here. Writing or updating
-# the repo DB (aur.db / aur.db.tar.gz) modifies the directory and would
-# retrigger the unit, causing a self-restart loop. Only trigger when
-# package files appear or disappear.
-# PathChanged=/var/lib/repo/aur
+# Monitor the directory for modifications (packages added/removed/updated).
+# This will also trigger when the DB is updated, but the fix script is
+# idempotent and exits immediately if the DB already exists, so spurious
+# triggers are harmless and fast.
+#
+# Using PathModified instead of PathExistsGlob avoids the restart loop
+# that occurs when packages already exist at the time the path unit starts,
+# because PathModified only triggers on changes, not continuous existence.
+PathModified=/var/lib/repo/aur
+
 Unit=fix-aurdb.service
+
+[Install]
+WantedBy=default.target
 
 [Install]
 WantedBy=default.target

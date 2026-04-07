@@ -2,54 +2,86 @@
 
 ## Testing
 
-This project includes a reproducible systemd-based smoke test that exercises
+This project includes multiple reproducible systemd-based tests that exercise
 the user-mode units and the script without touching the real system repo.
+
+### Available Tests
+
+Run all tests:
+
+```bash
+make test
+```
+
+Or run individual tests:
+
+```bash
+make test-systemd        # Basic smoke test
+make test-restart-loop   # Restart loop prevention test
+```
+
+### test-systemd (Basic Smoke Test)
 
 Overview
 
-- The test creates a temporary repo (default `/tmp/test-aur`) and copies a
-  real package from `/var/cache/pacman/pkg` into it.
-- It installs transient user systemd units (prefixed with `test-`) into
-  `~/.config/systemd/user/`, points them at the temporary repo, enables the
-  path unit, and triggers the path by adding another package file.
+- Creates a temporary repo (default `/tmp/test-aur`) with a deterministic dummy package.
+- Installs transient user systemd units (prefixed with `test-`) into
+  `~/.config/systemd/user/`, points them at the temporary repo.
+- Runs the service directly once, then enables the path unit and triggers it
+  by adding another package file.
 - After the run the test units are disabled and removed; the test repo is
   preserved for inspection.
 
-Run the test
+Override the test directory if you prefer:
 
-1. From the repo root:
+```bash
+TEST_DIR=/tmp/my-test make test-systemd
+```
 
-   make test-systemd
-
-2. Override the test directory if you prefer:
-
-   TEST_DIR=/tmp/my-test make test-systemd
-
-What the test verifies
+What it verifies
 
 - The script creates `aur.db.tar.gz` when package files exist.
-- The systemd path unit triggers the service exactly once when a package is
-  added (i.e. no self-restart loop). The test runner ensures this by removing
-  any packages from the test dir before enabling the path unit, then adding a
-  single package to cause an appearance event.
+- The systemd path unit triggers the service when a package is added.
 - The script exits quickly if another instance holds the lock (concurrency
-  protection). The test runner validates the script is runnable and resets any
-  prior systemd failed state before exercising the units.
+  protection).
 
-If the test fails
+### test-restart-loop (Restart Loop Prevention)
 
-- Check `journalctl --user -u test-fix-aurdb.service` for logs.
-- The test runner now builds a deterministic minimal `.pkg.tar.zst` in the
-  test dir (no dependence on the host pacman cache). Ensure `zstd` is
-  available on the system so the test can create the compressed package.
+Overview
 
-Notes
+- Creates a temporary repo with packages and a pre-existing DB (simulating
+  normal state after paru has run).
+- Enables the path unit with packages already present.
+- Verifies the path unit does NOT enter a restart loop.
 
-- The test creates and leaves the test repo dir so you can inspect created
-  DB artifacts. The systemd units are removed automatically.
-- The runner will:
+What it verifies
+
+- The path unit using `PathModified` does not continuously trigger when
+  packages already exist (no `unit-start-limit-hit` or `trigger-limit-hit`).
+- The path unit remains in `active (waiting)` state.
+- The service starts 0 times (since DB already exists and PathModified only
+  triggers on changes, not initial state).
+
+### Common Test Issues
+
+If tests fail
+
+- Check `journalctl --user -u test-fix-aurdb.service` (or the appropriate
+  test unit prefix) for logs.
+- All tests build deterministic minimal `.pkg.tar.zst` files (no dependence
+  on the host pacman cache). Ensure `zstd` is available on the system.
+
+### Notes
+
+- Tests create and leave the test repo directories for inspection. The systemd
+  units are removed automatically after each test.
+- The `test-systemd` runner will:
   1) create a deterministic dummy package in the test dir,
   2) run the service once directly to verify the script executes correctly,
   3) remove package files and enable the test path unit, and
   4) add a single package to trigger the path unit and confirm a single
      service run.
+- The `test-restart-loop` runner will:
+  1) create a package and DB in the test dir (simulating normal state),
+  2) enable the path unit with packages already present,
+  3) wait 5 seconds and verify the service does not restart repeatedly.

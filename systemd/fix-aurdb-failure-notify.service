@@ -1,0 +1,8 @@
+[Unit]
+Description=Desktop notification for fix-aurdb failures
+
+[Service]
+Type=oneshot
+# System-mode notification requires finding the user's DBUS session
+# This script will find the active desktop user and send them a notification
+ExecStart=/bin/bash -c 'for user in $(who | awk "{print \$1}" | sort -u); do sudo -u "$user" DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u "$user")/bus /usr/bin/notify-send --app-name="fix-aurdb" --urgency=critical --icon=dialog-error "AUR Database Error" "Failed to rebuild local AUR database. Check logs: sudo journalctl -u fix-aurdb.service"; done'

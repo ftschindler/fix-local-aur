@@ -1,0 +1,12 @@
+[Unit]
+Description=Rebuild local AUR DB on boot and periodically (user timer)
+
+[Timer]
+# Run 30 seconds after login/boot to ensure DB exists
+OnBootSec=30s
+# Run hourly to catch any edge cases
+OnUnitActiveSec=1h
+Unit=fix-aurdb.service
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,8 @@
+[Unit]
+Description=Desktop notification for fix-aurdb failures
+
+[Service]
+Type=oneshot
+# Use notify-send which works across KDE, GNOME, and other desktops
+# The DBUS_SESSION_BUS_ADDRESS must be set for notify-send to work
+ExecStart=/usr/bin/notify-send --app-name="fix-aurdb" --urgency=critical --icon=dialog-error "AUR Database Error" "Failed to rebuild local AUR database. Check logs: journalctl --user -u fix-aurdb.service"
